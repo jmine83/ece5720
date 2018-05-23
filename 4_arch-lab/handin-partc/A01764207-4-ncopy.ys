@@ -1,0 +1,152 @@
+#/* $begin ncopy-ys */
+##################################################################
+# ncopy.ys - Copy a src block of len words to dst.
+# Return the number of positive words (>0) contained in src.
+#
+# Names: Joel Meine & Paul Roylance
+# IDs:	 A01764207  & A01875212
+#
+# Implemented IIADDQ in pipe-full.hlc from part B
+# Replaced sets of commands that add a register to a (+) constant with IIADDQ
+#
+# Added loop unrolling for two iterations while len >= 2
+# Added loop unrolling for four iterations while len >= 4
+# Added loop unrolling for eight iterations while len >= 8
+# Realized loop unrolling could be more efficient
+#
+# Rewrote loop unrolling for two iterations while len >= 2
+# The rewrite included serial reads and writes
+# All src and dst pointers shifted by full iteration amount
+# Scaled loop unrolling up by 1 iteration at a time to find optimization
+# Stopped scaling at 10 iterations because highest iteration with lowest CPE
+# Added second loop unrolling, iterations optimized at 3
+#
+# 1st Loop Unrolling Iterations: 10
+# 2nd Loop Unrolling Iterations: 3
+# CPE: 9.23
+##################################################################
+# Do not modify this portion
+# Function prologue.
+# %rdi = src, %rsi = dst, %rdx = len
+ncopy:
+
+##################################################################
+# You can modify this portion
+	# Loop header
+	xorq %rax,%rax		# count = 0;
+	andq %rdx,%rdx		# len <= 0?
+	jle Done		# if so, goto Done:
+	
+### First Loop Unrolling ###
+
+	iaddq $-10, %rdx
+	jl Prep1		# if not, goto Prep1:
+
+Loop1:	mrmovq (%rdi), %r8	# read val[1] from src
+	mrmovq 8(%rdi), %r9	# read val[2] from src
+	mrmovq 16(%rdi), %r10	# read val[3] from src
+	mrmovq 24(%rdi), %r11	# read val[4] from src
+	mrmovq 32(%rdi), %r12	# read val[5] from src
+	mrmovq 40(%rdi), %r13	# read val[6] from src
+	mrmovq 48(%rdi), %r14	# read val[7] from src
+	mrmovq 56(%rdi), %rcx	# read val[8] from src
+	mrmovq 64(%rdi), %rbx	# read val[9] from src
+	mrmovq 72(%rdi), %rbp	# read val[10] from src
+	rmmovq %r8, (%rsi)	# store val[1] to dst
+	rmmovq %r9, 8(%rsi)	# store val[2] to dst
+	rmmovq %r10, 16(%rsi)	# store val[3] to dst
+	rmmovq %r11, 24(%rsi)	# store val[4] to dst
+	rmmovq %r12, 32(%rsi)	# store val[5] to dst
+	rmmovq %r13, 40(%rsi)	# store val[6] to dst
+	rmmovq %r14, 48(%rsi)	# store val[7] to dst
+	rmmovq %rcx, 56(%rsi)	# store val[8] to dst
+	rmmovq %rbx, 64(%rsi)	# store val[9] to dst
+	rmmovq %rbp, 72(%rsi)	# store val[10] to dst
+
+	andq %r8, %r8		# if val <= 0
+	jle Neg1		# then goto Neg1
+	iaddq $1, %rax		# count++
+Neg1:	andq %r9, %r9		# if val <= 0
+	jle Neg2		# then goto Neg2
+	iaddq $1, %rax		# count++
+Neg2:	andq %r10, %r10		# if val <= 0
+	jle Neg3		# then goto Neg3
+	iaddq $1, %rax		# count++
+Neg3:	andq %r11, %r11		# if val <= 0
+	jle Neg4		# then goto Neg4
+	iaddq $1, %rax		# count++
+Neg4:	andq %r12, %r12		# if val <= 0
+	jle Neg5		# then goto Neg5
+	iaddq $1, %rax		# count++
+Neg5:	andq %r13, %r13		# if val <= 0
+	jle Neg6		# then goto Neg6
+	iaddq $1, %rax		# count++
+Neg6:	andq %r14, %r14		# if val <= 0
+	jle Neg7		# then goto Neg7
+	iaddq $1, %rax		# count++
+Neg7:	andq %rcx, %rcx		# if val <= 0
+	jle Neg8		# then goto Neg8
+	iaddq $1, %rax		# count++
+Neg8:	andq %rbx, %rbx		# if val <= 0
+	jle Neg9		# then goto Neg9
+	iaddq $1, %rax		# count++
+Neg9:	andq %rbp, %rbp		# if val <= 0
+	jle Neg10		# then goto Neg10
+	iaddq $1, %rax		# count++
+Neg10:	iaddq $80, %rdi		# src+=10
+	iaddq $80, %rsi		# dst+=10
+	iaddq $-10, %rdx	# if len >= 10
+	jge Loop1		# goto Loop1:
+
+Prep1:	iaddq $10, %rdx		# check equal
+	je Done			# if so, goto Done:
+	
+### Second Loop Unrolling ###
+	
+	iaddq $-3, %rdx
+	jl Prep2		# if not, goto Prep2:
+
+Loop2:	mrmovq (%rdi), %r8	# read val[1] from src
+	mrmovq 8(%rdi), %r9	# read val[2] from src
+	mrmovq 16(%rdi), %r10	# read val[3] from src
+	rmmovq %r8, (%rsi)	# store val[1] to dst
+	rmmovq %r9, 8(%rsi)	# store val[2] to dst
+	rmmovq %r10, 16(%rsi)	# store val[3] to dst
+
+	andq %r8, %r8		# if val <= 0
+	jle Neg11		# then goto Neg11
+	iaddq $1, %rax		# count++
+Neg11:	andq %r9, %r9		# if val <= 0
+	jle Neg12		# then goto Neg12
+	iaddq $1, %rax		# count++
+Neg12:	andq %r10, %r10		# if val <= 0
+	jle Neg13		# then goto Neg13
+	iaddq $1, %rax		# count++
+Neg13:	iaddq $24, %rdi		# src+=3
+	iaddq $24, %rsi		# dst+=3
+	iaddq $-3, %rdx		# if len >= 3
+	jge Loop2		# goto Loop2:
+
+Prep2:	iaddq $3, %rdx		# check equal
+	je Done			# if so, goto Done:
+	
+### Single Iterations ###
+	
+Loop:	mrmovq (%rdi), %r10	# read val from src...
+	rmmovq %r10, (%rsi)	# ...and store it to dst
+	andq %r10, %r10		# val <= 0?
+	jle Npos		# if so, goto Npos:
+	iaddq $1, %rax		# count++
+Npos:	iaddq $8, %rdi		# src++
+	iaddq $8, %rsi		# dst++
+	iaddq $-1, %rdx		# len > 0?
+	jg Loop			# if so, goto Loop:
+##################################################################
+# Do not modify the following section of code
+# Function epilogue.
+Done:
+	ret
+##################################################################
+# Keep the following label at the end of your function
+End:
+#/* $end ncopy-ys */
